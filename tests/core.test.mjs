@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {normalizeTicket,username,makePassword,checkPassword,choosePrize,rotationFor,csvCell} from '../public/core.js';
+test('Volantes equivalentes y validación de límites',()=>{assert.equal(normalizeTicket('00125'),'125');assert.equal(normalizeTicket('125'),'125');assert.equal(normalizeTicket('000'),'0');assert.equal(normalizeTicket('999999999999'),'999999999999');for(const bad of ['','12a','-1','1.2','1 2','1234567890123'])assert.throws(()=>normalizeTicket(bad));});
+test('Usuarios normalizados',()=>{assert.equal(username(' ADMIN '),'admin');assert.throws(()=>username('../admin'));});
+test('Clave interna 123: hash con sal, verificación y rechazo de contraseña incorrecta',async()=>{const a=await makePassword('123'),b=await makePassword('123');assert.notEqual(a.passwordHash,b.passwordHash);assert.notEqual(a.passwordSalt,b.passwordSalt);assert.equal(await checkPassword('123',a),true);assert.equal(await checkPassword('1234',a),false);assert.equal(await checkPassword('123',{}),false);assert.equal(await checkPassword('123',{...a,passwordIterations:1}),false);});
+test('Selección solo permite premios activos',()=>{const p={'0':{enabled:false},'1':{enabled:true},'2':{enabled:true}};for(let i=0;i<1000;i++)assert.ok(['1','2'].includes(choosePrize(p)));assert.equal(choosePrize(p,'2'),'2');assert.throws(()=>choosePrize(p,'0'));assert.throws(()=>choosePrize({'0':{enabled:false}}));});
+test('Puntero coincide con los doce premios después de giros repetidos',()=>{let angle=0;for(let cycle=0;cycle<5;cycle++)for(let i=0;i<12;i++){const next=rotationFor(i,angle);assert.ok(next-angle>=2160);assert.equal((next+i*30+15)%360,0);angle=next;}});
+test('CSV escapa comillas y fórmulas',()=>{assert.equal(csvCell('A"B'),'"A""B"');assert.equal(csvCell('=1+1'),'"\'=1+1"');});

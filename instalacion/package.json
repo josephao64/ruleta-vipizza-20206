@@ -1,0 +1,1 @@
+{"name":"vipizza-instalacion","private":true,"type":"module","scripts":{"iniciar":"node crear-admin.mjs"},"dependencies":{"firebase-admin":"^13.0.0"}}

@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // INTERNAL LOGIN VERSION: no Firebase Authentication.
+    // Reads and valid writes are public. Roles/passwords are an interface control.
+    // Never mistake these schema rules for user authorization.
+    function validPrize(p) { return p is map && p.keys().hasOnly(['label','enabled']) && p.label is string && p.label.size() > 0 && p.label.size() <= 50 && p.enabled is bool; }
+    function validPrizes(p) {
+      return p is map && p.keys().hasAll(['0','1','2','3','4','5','6','7','8','9','10','11']) && p.size() == 12
+        && validPrize(p['0']) && validPrize(p['1']) && validPrize(p['2']) && validPrize(p['3'])
+        && validPrize(p['4']) && validPrize(p['5']) && validPrize(p['6']) && validPrize(p['7'])
+        && validPrize(p['8']) && validPrize(p['9']) && validPrize(p['10']) && validPrize(p['11'])
+        && (p['0'].enabled || p['1'].enabled || p['2'].enabled || p['3'].enabled || p['4'].enabled || p['5'].enabled || p['6'].enabled || p['7'].enabled || p['8'].enabled || p['9'].enabled || p['10'].enabled || p['11'].enabled);
+    }
+    function validUser(u, uid) {
+      return u.keys().hasAll(['username','name','role','active','mustChangePassword','createdAt','passwordSalt','passwordHash','passwordIterations'])
+        && u.keys().hasOnly(['username','name','role','active','mustChangePassword','createdAt','passwordSalt','passwordHash','passwordIterations'])
+        && u.username == uid && uid.matches('^[a-z0-9_]{3,24}$')
+        && u.name is string && u.name.size() >= 2 && u.name.size() <= 80
+        && u.role in ['admin','operator'] && u.active is bool && u.mustChangePassword is bool && u.createdAt is timestamp
+        && u.passwordSalt is string && u.passwordSalt.matches('^[0-9a-f]{32}$')
+        && u.passwordHash is string && u.passwordHash.matches('^[0-9a-f]{64}$')
+        && u.passwordIterations == 210000
+        && (uid != 'admin' || (u.role == 'admin' && u.active == true));
+    }
+    match /internalUsers/{uid} {
+      allow read: if true;
+      allow create: if validUser(request.resource.data,uid) && request.resource.data.createdAt == request.time && request.resource.data.mustChangePassword == true;
+      allow update: if validUser(request.resource.data,uid)
+        && request.resource.data.username == resource.data.username && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+    }
+    match /settings/wheel {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['prizes','updatedAt','updatedBy'])
+        && validPrizes(request.resource.data.prizes) && request.resource.data.updatedAt == request.time && request.resource.data.updatedBy is string && request.resource.data.updatedBy.matches('^[a-z0-9_]{3,24}$');
+      allow delete: if false;
+    }
+    match /spins/{ticket} {
+      allow read: if true;
+      allow create: if ticket.matches('^(0|[1-9][0-9]{0,11})$')
+        && request.resource.data.keys().hasAll(['ticket','participant','prizeId','prizeLabel','mode','operatorUid','operatorName','createdAt'])
+        && request.resource.data.keys().hasOnly(['ticket','participant','prizeId','prizeLabel','mode','operatorUid','operatorName','createdAt'])
+        && request.resource.data.ticket == ticket
+        && request.resource.data.participant is string && request.resource.data.participant.size() >= 2 && request.resource.data.participant.size() <= 80
+        && request.resource.data.prizeId in ['0','1','2','3','4','5','6','7','8','9','10','11']
+        && get(/databases/$(database)/documents/settings/wheel).data.prizes[request.resource.data.prizeId].enabled == true
+        && request.resource.data.prizeLabel == get(/databases/$(database)/documents/settings/wheel).data.prizes[request.resource.data.prizeId].label
+        && request.resource.data.mode in ['random','manual']
+        && request.resource.data.operatorUid is string && request.resource.data.operatorUid.matches('^[a-z0-9_]{3,24}$')
+        && request.resource.data.operatorName == request.resource.data.operatorUid
+        && get(/databases/$(database)/documents/internalUsers/$(request.resource.data.operatorUid)).data.active == true
+        && get(/databases/$(database)/documents/internalUsers/$(request.resource.data.operatorUid)).data.mustChangePassword == false
+        && (request.resource.data.mode == 'random' || get(/databases/$(database)/documents/internalUsers/$(request.resource.data.operatorUid)).data.role == 'admin')
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

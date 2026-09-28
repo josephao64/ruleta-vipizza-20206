@@ -1,0 +1,6 @@
+node_modules/
+*service*.json
+*cuenta*.json
+*clave*.json
+firebase-debug.log
+firestore-debug.log
