@@ -395,7 +395,7 @@
         <button type="button" id="btnEqual" class="secondary">⚖️ Equitativo (Igual probabilidad)</button>
         <button type="button" id="btnCheap" class="secondary">🎁 Premios Menores (Consolación)</button>
         <button type="button" id="btnResetCode" class="secondary">🔄 Restaurar del Código</button>
-        <button type="button" id="btnSaveStorage">💾 Guardar en Navegador</button>
+        <button type="button" id="btnSaveStorage" style="background:#2e7d32;">☁️ Guardar en Firebase</button>
       </div>
 
       <!-- Lista Interactiva de Premios -->
@@ -416,7 +416,7 @@
 
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js';
-  import { getFirestore, doc, collection, getDocs, onSnapshot, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js';
+  import { getFirestore, doc, collection, getDocs, onSnapshot, setDoc, updateDoc, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js';
   import { firebaseConfig } from './firebase-config.js';
   import { normalizeTicket, rotationFor } from './core.js';
 
@@ -483,11 +483,43 @@
     return { ...PROBABILIDADES_EN_CODIGO };
   }
 
-  function saveWeightsToStorage(silent = false) {
+  async function saveWeightsToFirebase(silent = false) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(weights));
-    $('savedIndicator').textContent = 'Memoria: Guardado en Navegador';
-    if (!silent) {
-      notify('Probabilidades guardadas con éxito. Ahora la vista principal de la ruleta (Gira y gana) utilizará estos porcentajes.');
+    let firebaseOk = false;
+    try {
+      const probRef = doc(db, 'settings', 'probabilities');
+      await setDoc(probRef, {
+        weights,
+        updatedAt: serverTimestamp(),
+        updatedBy: 'control'
+      });
+      firebaseOk = true;
+    } catch (e) {
+      console.warn('Error guardando en settings/probabilities:', e);
+    }
+
+    try {
+      await updateDoc(doc(db, 'settings', 'wheel'), {
+        probabilities: weights,
+        updatedAt: serverTimestamp(),
+        updatedBy: 'control'
+      });
+      firebaseOk = true;
+    } catch (e) {
+      console.warn('Error guardando en settings/wheel:', e);
+    }
+
+    if (firebaseOk) {
+      $('savedIndicator').textContent = 'Memoria: Guardado en Firebase';
+      $('savedIndicator').style.background = '#2e7d32';
+      if (!silent) {
+        notify('✅ Probabilidades guardadas en Firebase con éxito. La ruleta principal (incluido Jalapa) usará estos porcentajes.');
+      }
+    } else {
+      $('savedIndicator').textContent = 'Memoria: Guardado en Navegador';
+      if (!silent) {
+        notify('⚠️ Guardado localmente. Para guardar en Firebase en la nube, publica las reglas de firestore.rules en Firebase Console.', true);
+      }
     }
   }
 
@@ -649,7 +681,7 @@
         const val = Math.max(0, parseInt(e.target.value, 10) || 0);
         weights[key] = val;
         recalcPercentages();
-        saveWeightsToStorage(true);
+        saveWeightsToFirebase(true);
       });
 
       const btnForce = row.querySelector('[data-force]');
@@ -658,8 +690,7 @@
         weights[key] = 100;
         renderWeightsUI();
         renderLegend();
-        saveWeightsToStorage(false);
-        notify(`Premio #${i + 1} "${prize.label}" forzado al 100%. Ahora la ruleta principal (Gira y gana) sacará este premio.`);
+        saveWeightsToFirebase(false);
       });
 
       container.appendChild(row);
@@ -698,8 +729,7 @@
     for (let i = 0; i < 12; i++) weights[String(i)] = 10;
     renderWeightsUI();
     renderLegend();
-    saveWeightsToStorage(false);
-    notify('Probabilidades igualadas equitativamente en la ruleta principal.');
+    saveWeightsToFirebase(false);
   });
 
   $('btnCheap').addEventListener('click', () => {
@@ -708,8 +738,7 @@
     }
     renderWeightsUI();
     renderLegend();
-    saveWeightsToStorage(false);
-    notify('Mayor probabilidad aplicada a premios menores en la ruleta principal.');
+    saveWeightsToFirebase(false);
   });
 
   $('btnResetCode').addEventListener('click', () => {
@@ -718,10 +747,10 @@
     $('savedIndicator').textContent = 'Memoria: Código Interno';
     renderWeightsUI();
     renderLegend();
-    notify('Restauradas las probabilidades fijadas en el código fuente para ambas pantallas.');
+    saveWeightsToFirebase(false);
   });
 
-  $('btnSaveStorage').addEventListener('click', saveWeightsToStorage);
+  $('btnSaveStorage').addEventListener('click', () => saveWeightsToFirebase(false));
 
   // Simulador masivo de 1,000 giros
   $('btnRunSim').addEventListener('click', () => {
@@ -861,10 +890,24 @@
   renderLegend();
   renderWeightsUI();
 
+  // Escuchar probabilidades en tiempo real desde Firebase
+  onSnapshot(doc(db, 'settings', 'probabilities'), snap => {
+    if (snap.exists() && snap.data()?.weights) {
+      weights = { ...PROBABILIDADES_EN_CODIGO, ...snap.data().weights };
+      $('savedIndicator').textContent = 'Memoria: Sincronizado con Firebase';
+      $('savedIndicator').style.background = '#2e7d32';
+      renderWeightsUI();
+      renderLegend();
+    }
+  }, err => console.warn('Probabilidades snapshot:', err));
+
   // Escuchar configuración de premios en tiempo real desde Firebase (sin contraseña)
   onSnapshot(doc(db, 'settings', 'wheel'), snap => {
     if (snap.exists()) {
       config = snap.data();
+      if (config.probabilities) {
+        weights = { ...PROBABILIDADES_EN_CODIGO, ...config.probabilities };
+      }
       $('connection').textContent = 'Conectado a Firebase';
       $('prizesStatus').textContent = 'Premios sincronizados';
       $('prizesStatus').style.color = '#2e7d32';

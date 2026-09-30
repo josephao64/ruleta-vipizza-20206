@@ -2,13 +2,13 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.3.0/firebas
 import { createInternalLogin } from './internal-login.js';
 import { getFirestore, doc, collection, getDocFromServer, getDocsFromServer, onSnapshot, query, orderBy, limit, startAfter, runTransaction, setDoc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
-import { normalizeTicket, username, choosePrize, rotationFor, csvCell } from './core.js';
+import { normalizeTicket, username, choosePrize, rotationFor, csvCell } from './core.js?v=2.3';
 const $ = id => document.getElementById(id);
 const app = initializeApp(firebaseConfig), db = getFirestore(app);
 const internal = createInternalLogin(db), auth = internal.session;
 let initialized=false;
 const signOut = () => internal.signOut();
-let profile = null, config = null, subscriptions = [], dataSubscriptions = [], spinning = false, rotation = 0;
+let profile = null, config = null, firebaseWeights = null, subscriptions = [], dataSubscriptions = [], spinning = false, rotation = 0;
 let newest = [], older = [], cursor = null, users = [], tab = 'spin', generation = 0;
 const configRef = doc(db, 'settings', 'wheel');
 function notify(message, error = false) { $('notice').textContent = message; $('notice').className = error ? 'error' : ''; $('notice').hidden = false; }
@@ -72,6 +72,11 @@ function startData() {
     config = snap.data(); if (!spinning) { drawWheel(); fillSelection(); }
     renderPrizes(); updateSpinButton();
   }, e => { config = null; updateSpinButton(); notify(humanError(e), true); }));
+  dataSubscriptions.push(onSnapshot(doc(db, 'settings', 'probabilities'), snap => {
+    if (snap.exists() && snap.data()?.weights) {
+      firebaseWeights = snap.data().weights;
+    }
+  }, () => {}));
   dataSubscriptions.push(onSnapshot(query(collection(db,'spins'), orderBy('createdAt','desc'), limit(100)), snap => {
     if (older.length) older.push(...newest);
     newest = snap.docs.map(d => ({id:d.id,...d.data()}));
@@ -114,7 +119,7 @@ $('spinForm').addEventListener('submit', e => { e.preventDefault(); if (spinning
       const ref=doc(db,'spins',ticket), existing=await tx.get(ref), wheel=await tx.get(configRef);
       if (existing.exists()) throw new Error(`El volante ${ticket} ya participó. Premio: ${existing.data().prizeLabel}. Consulta el historial.`);
       if (!wheel.exists()) throw new Error('No hay premios configurados.');
-      const current=wheel.data(), prizeId=choosePrize(current.prizes,chosen);
+      const current=wheel.data(), prizeId=choosePrize(current.prizes,chosen,firebaseWeights || current.probabilities);
       const record={ticket,participant,prizeId,prizeLabel:current.prizes[prizeId].label,mode,operatorUid:auth.currentUser.uid,operatorName:profile.username,createdAt:serverTimestamp()};
       tx.set(ref,record); return {record,current};
     });

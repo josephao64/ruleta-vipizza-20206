@@ -32,9 +32,15 @@ service cloud.firestore {
     }
     match /settings/wheel {
       allow read: if true;
-      allow create, update: if request.resource.data.keys().hasOnly(['prizes','updatedAt','updatedBy'])
+      allow create, update: if (
+          request.resource.data.keys().hasOnly(['prizes','updatedAt','updatedBy'])
+          || request.resource.data.keys().hasOnly(['prizes','updatedAt','updatedBy','probabilities'])
+        )
         && validPrizes(request.resource.data.prizes) && request.resource.data.updatedAt == request.time && request.resource.data.updatedBy is string && request.resource.data.updatedBy.matches('^[a-z0-9_]{3,24}$');
       allow delete: if false;
+    }
+    match /settings/probabilities {
+      allow read, write: if true;
     }
     match /spins/{ticket} {
       allow read: if true;
