@@ -285,7 +285,7 @@
   <div class="top-banner">
     <div>
       <h2>Ajuste de Probabilidades de Premios</h2>
-      <p>Modifica la probabilidad de ganar de cada premio. Los cambios se aplican de inmediato en los giros de esta pantalla.</p>
+      <p>Modifica la probabilidad de ganar de cada premio. Los cambios guardados se aplican <strong>directamente a la ruleta principal (Gira y Gana)</strong> y a esta pantalla.</p>
     </div>
     <div style="display:flex; gap:10px; align-items:center;">
       <span id="savedIndicator" style="font-size:12px; background:#3c3d38; padding:7px 14px; border-radius:20px;">Memoria: Código Interno</span>
@@ -483,10 +483,12 @@
     return { ...PROBABILIDADES_EN_CODIGO };
   }
 
-  function saveWeightsToStorage() {
+  function saveWeightsToStorage(silent = false) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(weights));
     $('savedIndicator').textContent = 'Memoria: Guardado en Navegador';
-    notify('Probabilidades guardadas con éxito en el navegador.');
+    if (!silent) {
+      notify('Probabilidades guardadas con éxito. Ahora la vista principal de la ruleta (Gira y gana) utilizará estos porcentajes.');
+    }
   }
 
   function notify(msg, isError = false) {
@@ -647,6 +649,7 @@
         const val = Math.max(0, parseInt(e.target.value, 10) || 0);
         weights[key] = val;
         recalcPercentages();
+        saveWeightsToStorage(true);
       });
 
       const btnForce = row.querySelector('[data-force]');
@@ -655,7 +658,8 @@
         weights[key] = 100;
         renderWeightsUI();
         renderLegend();
-        notify(`Premio #${i + 1} "${prize.label}" forzado al 100%.`);
+        saveWeightsToStorage(false);
+        notify(`Premio #${i + 1} "${prize.label}" forzado al 100%. Ahora la ruleta principal (Gira y gana) sacará este premio.`);
       });
 
       container.appendChild(row);
@@ -694,7 +698,8 @@
     for (let i = 0; i < 12; i++) weights[String(i)] = 10;
     renderWeightsUI();
     renderLegend();
-    notify('Probabilidades igualadas equitativamente.');
+    saveWeightsToStorage(false);
+    notify('Probabilidades igualadas equitativamente en la ruleta principal.');
   });
 
   $('btnCheap').addEventListener('click', () => {
@@ -703,7 +708,8 @@
     }
     renderWeightsUI();
     renderLegend();
-    notify('Mayor probabilidad aplicada a premios menores.');
+    saveWeightsToStorage(false);
+    notify('Mayor probabilidad aplicada a premios menores en la ruleta principal.');
   });
 
   $('btnResetCode').addEventListener('click', () => {
@@ -712,7 +718,7 @@
     $('savedIndicator').textContent = 'Memoria: Código Interno';
     renderWeightsUI();
     renderLegend();
-    notify('Restauradas las probabilidades fijadas en el código fuente.');
+    notify('Restauradas las probabilidades fijadas en el código fuente para ambas pantallas.');
   });
 
   $('btnSaveStorage').addEventListener('click', saveWeightsToStorage);

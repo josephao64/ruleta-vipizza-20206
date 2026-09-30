@@ -24,17 +24,51 @@ export async function checkPassword(password, record) {
   let diff=0; for(let i=0;i<calculated.length;i++) diff |= calculated.charCodeAt(i)^record.passwordHash.charCodeAt(i);
   return diff===0;
 }
-export function choosePrize(prizes, manual = '') {
+export function choosePrize(prizes, manual = '', customWeights = null) {
   const active = Object.keys(prizes).filter(key => prizes[key].enabled);
   if (!active.length) throw new Error('Activa por lo menos un premio.');
   if (manual) {
     if (!active.includes(manual)) throw new Error('El premio seleccionado ya no está activo.');
     return manual;
   }
-  const max = Math.floor(4294967296 / active.length) * active.length;
-  const random = new Uint32Array(1);
-  do { crypto.getRandomValues(random); } while (random[0] >= max);
-  return active[random[0] % active.length];
+
+  // Verificar si hay pesos de probabilidad configurados en localStorage o pasados explícitamente
+  let weights = customWeights;
+  if (!weights && typeof localStorage !== 'undefined') {
+    try {
+      const saved = localStorage.getItem('vipizza_custom_weights_v2');
+      if (saved) weights = JSON.parse(saved);
+    } catch (_) {}
+  }
+
+  // Si hay pesos personalizados, aplicar selección probabilística ponderada
+  if (weights && typeof weights === 'object') {
+    let totalWeight = 0;
+    for (const key of active) {
+      const w = Math.max(0, Number(weights[key]) || 0);
+      totalWeight += w;
+    }
+
+    if (totalWeight > 0) {
+      let randomVal = Math.random() * totalWeight;
+      for (const key of active) {
+        const w = Math.max(0, Number(weights[key]) || 0);
+        if (w <= 0) continue;
+        if (randomVal < w) return key;
+        randomVal -= w;
+      }
+      return active[active.length - 1];
+    }
+  }
+
+  // Comportamiento equitativo estándar si no hay pesos personalizados
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const max = Math.floor(4294967296 / active.length) * active.length;
+    const random = new Uint32Array(1);
+    do { crypto.getRandomValues(random); } while (random[0] >= max);
+    return active[random[0] % active.length];
+  }
+  return active[Math.floor(Math.random() * active.length)];
 }
 export function rotationFor(index, current = 0) {
   const target = ((360 - (index * 30 + 15)) % 360);
