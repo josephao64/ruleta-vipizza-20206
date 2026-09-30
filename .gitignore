@@ -4,3 +4,4 @@ node_modules/
 *clave*.json
 firebase-debug.log
 firestore-debug.log
+.vscode/

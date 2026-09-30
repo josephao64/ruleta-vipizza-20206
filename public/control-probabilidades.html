@@ -1,0 +1,893 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#262723">
+  <title>ViPizza · Panel de Probabilidades (Acceso Directo)</title>
+  <link rel="icon" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    :root {
+      --card-bg: #ffffff;
+      --card-border: #e4e4df;
+      --accent: #ef6418;
+      --accent-dark: #6c192d;
+      --success: #2e7d32;
+      --warning: #f57c00;
+    }
+    body {
+      background: #f4f4f0;
+    }
+    .badge-direct {
+      display: inline-block;
+      background: #ef6418;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      vertical-align: middle;
+      margin-left: 10px;
+    }
+    .top-banner {
+      background: #252622;
+      color: #ffffff;
+      border-radius: 16px;
+      padding: 18px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+    .top-banner h2 {
+      margin: 0 0 4px;
+      font-size: 20px;
+      color: #ffffff;
+    }
+    .top-banner p {
+      margin: 0;
+      font-size: 14px;
+      color: #c9c9c2;
+    }
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1.35fr;
+      gap: 28px;
+      align-items: start;
+    }
+    @media (max-width: 980px) {
+      .controls-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .wheel-card {
+      background: #fff;
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .weights-container {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 24px;
+    }
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 16px 0 20px;
+    }
+    .quick-actions button {
+      min-height: 38px;
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+    .prize-weights-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 720px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+    .weight-row {
+      display: grid;
+      grid-template-columns: 32px 1.5fr 1.1fr 75px 70px;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 14px;
+      background: #fafaf8;
+      border: 1px solid #ebebe6;
+      border-radius: 12px;
+      transition: all 0.15s ease;
+    }
+    .weight-row.disabled-prize {
+      opacity: 0.45;
+      background: #f0f0ee;
+    }
+    .weight-row:hover:not(.disabled-prize) {
+      border-color: #cecec6;
+      background: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .weight-row.high-chance {
+      border-left: 5px solid var(--accent);
+      background: #fff8f3;
+    }
+    .prize-num {
+      font-weight: 900;
+      color: #686860;
+      font-size: 14px;
+    }
+    .prize-info {
+      font-size: 14px;
+      font-weight: 700;
+      color: #242321;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .prize-info small {
+      display: block;
+      font-weight: 400;
+      font-size: 12px;
+      color: #888982;
+      margin-top: 2px;
+    }
+    .bar-container {
+      position: relative;
+      background: #e6e6e0;
+      height: 20px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ef6418, #6c192d);
+      border-radius: 10px;
+      transition: width 0.25s ease;
+      min-width: 0;
+    }
+    .bar-percent {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      font-weight: 800;
+      color: #242321;
+      text-shadow: 0 0 3px #ffffff;
+    }
+    .weight-input-box input {
+      width: 100%;
+      min-height: 38px;
+      padding: 6px 8px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 14px;
+      border-radius: 8px;
+    }
+    .btn-force {
+      min-height: 36px;
+      padding: 6px 8px;
+      font-size: 12px;
+      background: #252622;
+      color: #fff;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+    .btn-force:hover {
+      background: #ef6418;
+    }
+    .sim-panel {
+      margin-top: 20px;
+      padding: 16px;
+      background: #f7f7f3;
+      border-radius: 12px;
+      border: 1px dashed #cecec6;
+    }
+    .sim-results {
+      font-size: 13px;
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 6px;
+    }
+    .sim-tag {
+      background: #fff;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #e0e0db;
+      font-size: 12px;
+    }
+    .total-prob {
+      font-size: 14px;
+      font-weight: 700;
+      margin-top: 14px;
+      padding: 12px 16px;
+      background: #f0f0ea;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .legend-prizes-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 16px;
+      margin-top: 16px;
+      font-size: 13px;
+      background: #fafaf8;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid #ebebe6;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .legend-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #252622;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .legend-badge.orange { background: #ef6418; }
+    .legend-badge.wine { background: #6c192d; }
+    .legend-badge.dark { background: #262723; }
+    .legend-name {
+      font-weight: 700;
+      color: #242321;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .legend-pct {
+      font-size: 12px;
+      font-weight: 800;
+      color: #686860;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;">
+    <a class="brand" href="./">Vi<span>Pizza</span></a>
+    <span class="badge-direct">MODIFICAR PROBABILIDADES · ACCESO DIRECTO</span>
+  </div>
+  <div class="session">
+    <span id="connection">Conectando a Firebase…</span>
+    <span id="prizesStatus" style="font-weight:700; color:#ef6418;">Cargando premios…</span>
+  </div>
+</header>
+
+<main>
+  <div id="notice" role="status" aria-live="polite" hidden></div>
+
+  <!-- Banner Superior Informativo -->
+  <div class="top-banner">
+    <div>
+      <h2>Ajuste de Probabilidades de Premios</h2>
+      <p>Modifica la probabilidad de ganar de cada premio. Los cambios se aplican de inmediato en los giros de esta pantalla.</p>
+    </div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <span id="savedIndicator" style="font-size:12px; background:#3c3d38; padding:7px 14px; border-radius:20px;">Memoria: Código Interno</span>
+    </div>
+  </div>
+
+  <div class="controls-grid">
+    
+    <!-- Columna Izquierda: Ruleta Visual, Premios Asignados y Formulario de Giro -->
+    <div>
+      <div class="wheel-card">
+        <div class="section-heading" style="margin-bottom:12px;">
+          <div>
+            <p class="eyebrow">RULETA EN VIVO</p>
+            <h2 style="margin:0;">Ruleta de Premios</h2>
+          </div>
+          <span class="pill" id="pillActiveCount">12 premios</span>
+        </div>
+
+        <div class="wheel-zone">
+          <div class="wheel-wrap">
+            <div class="pointer" aria-hidden="true"></div>
+            <canvas id="wheel" width="1000" height="1000" role="img" aria-label="Ruleta interactiva"></canvas>
+            <div class="hub">Vi<span>Pizza</span></div>
+          </div>
+        </div>
+
+        <!-- Leyenda con nombres de premios asignados -->
+        <h3 style="font-size:14px; margin:16px 0 8px; color:#555650;">Premios asignados en la ruleta:</h3>
+        <div id="wheelLegendGrid" class="legend-prizes-grid">
+          <!-- Generado dinámicamente con los nombres reales -->
+        </div>
+
+        <!-- Formulario de Giro -->
+        <form id="spinForm" style="margin-top:24px; padding-top:20px; border-top:1px solid #ebebe6;">
+          <p class="eyebrow">REGISTRAR GIRO</p>
+          <h3 style="margin:0 0 16px; font-size:18px;">Girar con las probabilidades elegidas</h3>
+          
+          <label>Nombre del participante
+            <input name="participant" required minlength="2" maxlength="80" autocomplete="off" placeholder="Ej. Juan Pérez">
+          </label>
+
+          <label>Número de volante
+            <input name="ticket" required inputmode="numeric" pattern="[0-9]{1,12}" maxlength="12" autocomplete="off" placeholder="Ej. 104">
+            <small>Solo números (hasta 12 dígitos).</small>
+          </label>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <label>Operador que registra
+              <select name="operatorUid" id="operatorSelect">
+                <option value="admin">admin (Administrador)</option>
+              </select>
+            </label>
+
+            <label>Modo de guardado
+              <select name="spinMode" id="spinMode">
+                <option value="random">🛡️ Aleatorio Camuflado (Recomendado)</option>
+                <option value="manual">✋ Selección Manual</option>
+                <option value="simulation">🧪 Simulación Local (No guarda en Firebase)</option>
+              </select>
+            </label>
+          </div>
+          <small class="muted" style="display:block; margin-top:-6px; margin-bottom:14px;">
+            * El modo "Aleatorio Camuflado" se guarda como <strong>random</strong> en Firestore, por lo que en el historial público aparece como un sorteo 100% al azar.
+          </small>
+
+          <button id="spinButton" type="submit" style="width:100%; font-size:17px; min-height:50px;">
+            Girar Ruleta con Probabilidad Calculada <span>↗</span>
+          </button>
+        </form>
+
+        <div id="result" class="result" aria-live="polite" hidden>
+          <p class="eyebrow">PREMIO OBTENIDO</p>
+          <h2 id="resultPrize" style="font-size:28px;"></h2>
+          <p id="resultPerson" style="font-size:16px;"></p>
+          <small id="resultMode"></small>
+        </div>
+      </div>
+
+      <!-- Simulador de Pruebas -->
+      <div class="sim-panel">
+        <h3 style="margin:0 0 6px; font-size:15px;">🧪 Simulador Rápido de 1,000 Giros</h3>
+        <p class="muted" style="margin:0 0 10px; font-size:13px;">Prueba matemática instantánea en tu navegador para ver qué premios caen según los pesos configurados:</p>
+        <button type="button" id="btnRunSim" class="secondary" style="width:100%; min-height:40px; font-size:13px;">
+          Ejecutar 1,000 giros de prueba
+        </button>
+        <div id="simResults" class="sim-results" hidden></div>
+      </div>
+    </div>
+
+    <!-- Columna Derecha: Panel de Modificación de Probabilidades -->
+    <div class="weights-container">
+      <div class="section-heading" style="margin-bottom:8px;">
+        <div>
+          <p class="eyebrow">CONTROL DE PROBABILIDAD</p>
+          <h2 style="margin:0;">Nombres y Oportunidad de Ganar</h2>
+        </div>
+        <span class="pill" id="activePrizesBadge">12 premios</span>
+      </div>
+
+      <p class="muted" style="margin-bottom:14px;">
+        Asigna el peso de cada premio. Un peso mayor incrementa la probabilidad de que la ruleta se detenga en él:
+      </p>
+
+      <!-- Botones de Acción Rápida -->
+      <div class="quick-actions">
+        <button type="button" id="btnEqual" class="secondary">⚖️ Equitativo (Igual probabilidad)</button>
+        <button type="button" id="btnCheap" class="secondary">🎁 Premios Menores (Consolación)</button>
+        <button type="button" id="btnResetCode" class="secondary">🔄 Restaurar del Código</button>
+        <button type="button" id="btnSaveStorage">💾 Guardar en Navegador</button>
+      </div>
+
+      <!-- Lista Interactiva de Premios -->
+      <div id="weightsList" class="prize-weights-list">
+        <!-- Generado dinámicamente -->
+      </div>
+
+      <div class="total-prob">
+        <span>Suma de pesos: <strong id="totalWeightVal">120</strong></span>
+        <span style="color:var(--success); font-weight:800;">Probabilidad total calculada: 100%</span>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer>ViPizza <span>·</span> Panel Interno de Ruleta y Probabilidades</footer>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js';
+  import { getFirestore, doc, collection, getDocs, onSnapshot, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js';
+  import { firebaseConfig } from './firebase-config.js';
+  import { normalizeTicket, rotationFor } from './core.js';
+
+  // ============================================================================
+  // ⚙️ CONFIGURACIÓN DE PROBABILIDADES EN CÓDIGO (PESOS RELATIVOS)
+  // ============================================================================
+  // Puedes editar los números directamente aquí:
+  // 0 = 0% de probabilidad (NUNCA saldrá)
+  // 10 = Probabilidad normal
+  // 100 = Probabilidad muy alta
+  // O ponle 100 al premio que quieras que salga y 0 a los demás para forzarlo.
+  const PROBABILIDADES_EN_CODIGO = {
+    0:  10,   // Premio 1
+    1:  10,   // Premio 2
+    2:  10,   // Premio 3
+    3:  10,   // Premio 4
+    4:  10,   // Premio 5
+    5:  10,   // Premio 6
+    6:  10,   // Premio 7
+    7:  10,   // Premio 8
+    8:  10,   // Premio 9
+    9:  10,   // Premio 10
+    10: 10,   // Premio 11
+    11: 10    // Premio 12
+  };
+
+  // Nombres de premios iniciales / respaldo si la base de datos tarda en conectar
+  const NOMBRES_RESPALDO = {
+    0: { label: "Premio 1", enabled: true },
+    1: { label: "Premio 2", enabled: true },
+    2: { label: "Premio 3", enabled: true },
+    3: { label: "Premio 4", enabled: true },
+    4: { label: "Premio 5", enabled: true },
+    5: { label: "Premio 6", enabled: true },
+    6: { label: "Premio 7", enabled: true },
+    7: { label: "Premio 8", enabled: true },
+    8: { label: "Premio 9", enabled: true },
+    9: { label: "Premio 10", enabled: true },
+    10: { label: "Premio 11", enabled: true },
+    11: { label: "Premio 12", enabled: true }
+  };
+
+  const $ = id => document.getElementById(id);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const STORAGE_KEY = 'vipizza_custom_weights_v2';
+  let config = { prizes: NOMBRES_RESPALDO };
+  let spinning = false;
+  let rotation = 0;
+  let weights = loadWeights();
+
+  function loadWeights() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        $('savedIndicator').textContent = 'Memoria: Guardado en Navegador';
+        return { ...PROBABILIDADES_EN_CODIGO, ...JSON.parse(saved) };
+      }
+    } catch (e) {
+      console.warn('Error leyendo localStorage:', e);
+    }
+    $('savedIndicator').textContent = 'Memoria: Código Interno';
+    return { ...PROBABILIDADES_EN_CODIGO };
+  }
+
+  function saveWeightsToStorage() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(weights));
+    $('savedIndicator').textContent = 'Memoria: Guardado en Navegador';
+    notify('Probabilidades guardadas con éxito en el navegador.');
+  }
+
+  function notify(msg, isError = false) {
+    $('notice').textContent = msg;
+    $('notice').className = isError ? 'error' : '';
+    $('notice').hidden = false;
+  }
+  function clearNotice() { $('notice').hidden = true; }
+
+  // Selección ponderada matemática
+  function chooseWeightedPrize(prizes, currentWeights) {
+    const active = Object.keys(prizes).filter(k => prizes[k].enabled);
+    if (!active.length) throw new Error('No hay premios activos en la ruleta.');
+
+    let totalWeight = 0;
+    for (const key of active) {
+      const w = Math.max(0, Number(currentWeights[key]) || 0);
+      totalWeight += w;
+    }
+
+    if (totalWeight <= 0) {
+      const randomIdx = Math.floor(Math.random() * active.length);
+      return active[randomIdx];
+    }
+
+    let rnd = Math.random() * totalWeight;
+    for (const key of active) {
+      const w = Math.max(0, Number(currentWeights[key]) || 0);
+      if (w <= 0) continue;
+      if (rnd < w) return key;
+      rnd -= w;
+    }
+    return active[active.length - 1];
+  }
+
+  // Dibujar ruleta interactiva con nombres
+  function drawWheel() {
+    const canvas = $('wheel'), ctx = canvas.getContext('2d'), colors = ['#ef6418','#6c192d','#262723'];
+    ctx.clearRect(0, 0, 1000, 1000);
+
+    for (let i = 0; i < 12; i++) {
+      const prize = config.prizes[String(i)] || { label: `Premio ${i+1}`, enabled: true };
+      const start = -Math.PI/2 + i*Math.PI/6;
+      ctx.beginPath();
+      ctx.moveTo(500, 500);
+      ctx.arc(500, 500, 488, start, start + Math.PI/6);
+      ctx.closePath();
+      ctx.fillStyle = prize.enabled ? colors[i % 3] : '#babdb6';
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.save();
+      ctx.translate(500, 500);
+      ctx.rotate(start + Math.PI/12);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 26px Arial';
+
+      const label = `${i + 1}. ${prize.label}`;
+      const words = label.split(' ');
+      let lines = [''];
+      for (const word of words) {
+        const last = lines.length - 1;
+        const candidate = (lines[last] + ' ' + word).trim();
+        if (ctx.measureText(candidate).width > 280 && lines[last]) lines.push(word);
+        else lines[last] = candidate;
+      }
+      lines.slice(0, 3).forEach((line, j) => {
+        while (ctx.measureText(line).width > 280) line = line.slice(0, -2) + '…';
+        ctx.fillText(line, 450, (j - (Math.min(lines.length, 3) - 1)/2) * 30);
+      });
+      ctx.restore();
+    }
+  }
+
+  // Renderizar la leyenda de premios asignados
+  function renderLegend() {
+    const grid = $('wheelLegendGrid');
+    grid.innerHTML = '';
+    const colors = ['orange', 'wine', 'dark'];
+
+    const activeKeys = Object.keys(config.prizes).filter(k => config.prizes[k].enabled);
+    let totalWeight = 0;
+    for (const key of activeKeys) {
+      totalWeight += Math.max(0, Number(weights[key]) || 0);
+    }
+
+    for (let i = 0; i < 12; i++) {
+      const key = String(i);
+      const prize = config.prizes[key] || { label: `Premio ${i+1}`, enabled: true };
+      const isEnabled = prize.enabled;
+      const w = Math.max(0, Number(weights[key]) || 0);
+      const pct = (isEnabled && totalWeight > 0) ? ((w / totalWeight) * 100).toFixed(1) : '0.0';
+
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.innerHTML = `
+        <span class="legend-badge ${colors[i % 3]}">${i + 1}</span>
+        <span class="legend-name" title="${prize.label}">
+          ${prize.label} ${!isEnabled ? '<small style="color:#d32f2f;">(Inactivo)</small>' : ''}
+        </span>
+        <span class="legend-pct" id="legend_pct_${key}">${pct}%</span>
+      `;
+      grid.appendChild(item);
+    }
+  }
+
+  // Renderizar lista completa con sliders y porcentajes
+  function renderWeightsUI() {
+    const container = $('weightsList');
+    container.innerHTML = '';
+
+    const activeKeys = Object.keys(config.prizes).filter(k => config.prizes[k].enabled);
+    $('activePrizesBadge').textContent = `${activeKeys.length} activos de 12`;
+    $('pillActiveCount').textContent = `${activeKeys.length} premios activos`;
+
+    let totalWeight = 0;
+    for (const key of activeKeys) {
+      totalWeight += Math.max(0, Number(weights[key]) || 0);
+    }
+    $('totalWeightVal').textContent = totalWeight;
+
+    for (let i = 0; i < 12; i++) {
+      const key = String(i);
+      const prize = config.prizes[key] || { label: `Premio ${i+1}`, enabled: true };
+      const isEnabled = prize.enabled;
+      const w = Math.max(0, Number(weights[key]) || 0);
+      const pct = (isEnabled && totalWeight > 0) ? ((w / totalWeight) * 100).toFixed(1) : '0.0';
+
+      const row = document.createElement('div');
+      row.className = `weight-row ${!isEnabled ? 'disabled-prize' : ''} ${pct >= 25 ? 'high-chance' : ''}`;
+      row.id = `row_${key}`;
+
+      row.innerHTML = `
+        <div class="prize-num">#${i + 1}</div>
+        <div class="prize-info" title="${prize.label}">
+          ${prize.label}
+          <small>${isEnabled ? '✅ Asignado en Ruleta' : '⚠️ Desactivado en Firebase'}</small>
+        </div>
+        <div class="bar-container">
+          <div class="bar-fill" style="width: ${pct}%;"></div>
+          <span class="bar-percent">${pct}%</span>
+        </div>
+        <div class="weight-input-box">
+          <input type="number" min="0" max="1000" value="${w}" data-key="${key}" ${!isEnabled ? 'disabled' : ''}>
+        </div>
+        <div>
+          <button type="button" class="btn-force" data-force="${key}" ${!isEnabled ? 'disabled' : ''} title="Forzar 100% a este premio">
+            🎯 100%
+          </button>
+        </div>
+      `;
+
+      const input = row.querySelector('input');
+      input.addEventListener('input', e => {
+        const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+        weights[key] = val;
+        recalcPercentages();
+      });
+
+      const btnForce = row.querySelector('[data-force]');
+      btnForce.addEventListener('click', () => {
+        for (let j = 0; j < 12; j++) weights[String(j)] = 0;
+        weights[key] = 100;
+        renderWeightsUI();
+        renderLegend();
+        notify(`Premio #${i + 1} "${prize.label}" forzado al 100%.`);
+      });
+
+      container.appendChild(row);
+    }
+  }
+
+  function recalcPercentages() {
+    const activeKeys = Object.keys(config.prizes).filter(k => config.prizes[k].enabled);
+    let totalWeight = 0;
+    for (const key of activeKeys) {
+      totalWeight += Math.max(0, Number(weights[key]) || 0);
+    }
+    $('totalWeightVal').textContent = totalWeight;
+
+    for (let i = 0; i < 12; i++) {
+      const key = String(i);
+      const isEnabled = config.prizes[key].enabled;
+      const w = Math.max(0, Number(weights[key]) || 0);
+      const pct = (isEnabled && totalWeight > 0) ? ((w / totalWeight) * 100).toFixed(1) : '0.0';
+
+      const row = $(`row_${key}`);
+      if (row) {
+        row.querySelector('.bar-fill').style.width = `${pct}%`;
+        row.querySelector('.bar-percent').textContent = `${pct}%`;
+        if (pct >= 25) row.classList.add('high-chance');
+        else row.classList.remove('high-chance');
+      }
+
+      const legPct = $(`legend_pct_${key}`);
+      if (legPct) legPct.textContent = `${pct}%`;
+    }
+  }
+
+  // Presets rápidos
+  $('btnEqual').addEventListener('click', () => {
+    for (let i = 0; i < 12; i++) weights[String(i)] = 10;
+    renderWeightsUI();
+    renderLegend();
+    notify('Probabilidades igualadas equitativamente.');
+  });
+
+  $('btnCheap').addEventListener('click', () => {
+    for (let i = 0; i < 12; i++) {
+      weights[String(i)] = (i < 6) ? 5 : 80;
+    }
+    renderWeightsUI();
+    renderLegend();
+    notify('Mayor probabilidad aplicada a premios menores.');
+  });
+
+  $('btnResetCode').addEventListener('click', () => {
+    localStorage.removeItem(STORAGE_KEY);
+    weights = { ...PROBABILIDADES_EN_CODIGO };
+    $('savedIndicator').textContent = 'Memoria: Código Interno';
+    renderWeightsUI();
+    renderLegend();
+    notify('Restauradas las probabilidades fijadas en el código fuente.');
+  });
+
+  $('btnSaveStorage').addEventListener('click', saveWeightsToStorage);
+
+  // Simulador masivo de 1,000 giros
+  $('btnRunSim').addEventListener('click', () => {
+    const counts = {};
+    for (let i = 0; i < 12; i++) counts[String(i)] = 0;
+
+    for (let s = 0; s < 1000; s++) {
+      const won = chooseWeightedPrize(config.prizes, weights);
+      counts[won]++;
+    }
+
+    const resDiv = $('simResults');
+    resDiv.innerHTML = '';
+    for (let i = 0; i < 12; i++) {
+      const key = String(i);
+      const p = config.prizes[key] || { label: `Premio ${i+1}` };
+      if (!p.enabled && counts[key] === 0) continue;
+      const tag = document.createElement('div');
+      tag.className = 'sim-tag';
+      tag.innerHTML = `<strong>#${i + 1} (${p.label}):</strong><br>${counts[key]} veces (${(counts[key]/10).toFixed(1)}%)`;
+      resDiv.appendChild(tag);
+    }
+    resDiv.hidden = false;
+  });
+
+  // Ejecución de Giros
+  $('spinForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (spinning) return;
+    clearNotice();
+
+    const form = e.target;
+    const participant = form.participant.value.trim().replace(/\s+/g, ' ');
+    const spinMode = form.spinMode.value;
+    const operatorUid = form.operatorUid.value || 'admin';
+
+    let ticket = '';
+    try {
+      ticket = normalizeTicket(form.ticket.value);
+    } catch (err) {
+      notify(err.message, true);
+      return;
+    }
+
+    if (participant.length < 2) {
+      notify('Ingresa el nombre del participante.', true);
+      return;
+    }
+
+    spinning = true;
+    $('spinButton').disabled = true;
+    form.querySelectorAll('input, select, button').forEach(n => n.disabled = true);
+
+    try {
+      let chosenPrizeId = '';
+      let prizeLabel = '';
+      let recordMode = 'random';
+
+      if (spinMode === 'simulation') {
+        chosenPrizeId = chooseWeightedPrize(config.prizes, weights);
+        prizeLabel = config.prizes[chosenPrizeId].label;
+        recordMode = 'Simulación (Local)';
+      } else {
+        const result = await runTransaction(db, async tx => {
+          const ticketRef = doc(db, 'spins', ticket);
+          const existing = await tx.get(ticketRef);
+          if (existing.exists()) {
+            throw new Error(`El volante ${ticket} ya participó con el premio: "${existing.data().prizeLabel}".`);
+          }
+
+          const wheelRef = doc(db, 'settings', 'wheel');
+          const wheelSnap = await tx.get(wheelRef);
+          if (!wheelSnap.exists()) throw new Error('No hay premios configurados en Firebase.');
+
+          const curConfig = wheelSnap.data();
+          chosenPrizeId = chooseWeightedPrize(curConfig.prizes, weights);
+          prizeLabel = curConfig.prizes[chosenPrizeId].label;
+          recordMode = (spinMode === 'manual') ? 'manual' : 'random';
+
+          const record = {
+            ticket,
+            participant,
+            prizeId: chosenPrizeId,
+            prizeLabel,
+            mode: recordMode,
+            operatorUid,
+            operatorName: operatorUid,
+            createdAt: serverTimestamp()
+          };
+
+          tx.set(ticketRef, record);
+          return { record, curConfig };
+        });
+
+        config = result.curConfig;
+      }
+
+      // Animación de detención de la ruleta
+      drawWheel();
+      $('result').hidden = false;
+      $('resultPrize').textContent = 'Girando…';
+      $('resultPerson').textContent = `${participant} · Volante ${ticket}`;
+      $('resultMode').textContent = 'Calculando detención con probabilidad…';
+
+      const nextRotation = rotationFor(Number(chosenPrizeId), rotation);
+      const animation = $('wheel').animate(
+        [{ transform: `rotate(${rotation}deg)` }, { transform: `rotate(${nextRotation}deg)` }],
+        { duration: 5200, easing: 'cubic-bezier(.13,.65,.08,1)', fill: 'forwards' }
+      );
+
+      await animation.finished;
+      rotation = nextRotation;
+      $('wheel').style.transform = `rotate(${rotation}deg)`;
+      animation.cancel();
+
+      $('resultPrize').textContent = prizeLabel;
+      $('resultMode').textContent = spinMode === 'simulation'
+        ? '🧪 Simulación completada (No guardada en Firebase)'
+        : (recordMode === 'manual' ? '✋ Registrado como Selección Manual' : '🛡️ Registrado en Firebase como "Aleatorio"');
+
+      form.participant.value = '';
+      form.ticket.value = '';
+      notify(`Giro completado: ¡Ganó "${prizeLabel}"!`);
+    } catch (err) {
+      console.error(err);
+      notify(err.message || 'Error al ejecutar el giro.', true);
+    } finally {
+      spinning = false;
+      $('spinButton').disabled = false;
+      form.querySelectorAll('input, select, button').forEach(n => n.disabled = false);
+      form.participant.focus();
+    }
+  });
+
+  // Render inicial inmediato
+  drawWheel();
+  renderLegend();
+  renderWeightsUI();
+
+  // Escuchar configuración de premios en tiempo real desde Firebase (sin contraseña)
+  onSnapshot(doc(db, 'settings', 'wheel'), snap => {
+    if (snap.exists()) {
+      config = snap.data();
+      $('connection').textContent = 'Conectado a Firebase';
+      $('prizesStatus').textContent = 'Premios sincronizados';
+      $('prizesStatus').style.color = '#2e7d32';
+      if (!spinning) drawWheel();
+      renderLegend();
+      renderWeightsUI();
+    }
+  }, err => {
+    console.warn('Firebase snapshot warning:', err);
+    $('connection').textContent = 'Modo Local / Sin Conexión';
+  });
+
+  // Cargar lista de operadores activos para el selector de giro
+  getDocs(collection(db, 'internalUsers')).then(snap => {
+    if (!snap.empty) {
+      const select = $('operatorSelect');
+      select.innerHTML = '';
+      snap.docs.forEach(d => {
+        const u = d.data();
+        if (u.active) {
+          const opt = document.createElement('option');
+          opt.value = d.id;
+          opt.textContent = `${u.name} (${d.id} · ${u.role})`;
+          select.appendChild(opt);
+        }
+      });
+    }
+  }).catch(e => console.warn('Usuarios locales:', e));
+</script>
+
+</body>
+</html>
